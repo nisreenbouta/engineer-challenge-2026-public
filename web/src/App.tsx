@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { setOnUnauthorized } from './api'
 import Login from './components/Login'
 import Inbox from './components/Inbox'
 import { User } from './types'
@@ -6,9 +7,20 @@ import { User } from './types'
 export default function App() {
   const [token, setToken] = useState<string>(() => localStorage.getItem('token') || '')
   const [user, setUser] = useState<User | null>(() => {
-    const raw = localStorage.getItem('user')
-    return raw ? JSON.parse(raw) : null
+    try {
+      const raw = localStorage.getItem('user')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
   })
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setToken('')
+      setUser(null)
+    })
+  }, [])
 
   const onLogin = (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken)
@@ -18,6 +30,7 @@ export default function App() {
   }
 
   const onLogout = () => {
+    if (!window.confirm('Sign out?')) return
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setToken('')

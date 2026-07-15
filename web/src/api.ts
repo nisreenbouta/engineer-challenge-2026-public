@@ -1,5 +1,11 @@
-import { API_URL, LLM_API_KEY } from './config'
+import { API_URL } from './config'
 import { CustomerProfile, FeedbackItem, InternalNote, Metrics, User } from './types'
+
+let onUnauthorized: (() => void) | null = null
+
+export function setOnUnauthorized(cb: () => void) {
+  onUnauthorized = cb
+}
 
 export async function login(
   email: string,
@@ -16,56 +22,76 @@ export async function login(
   return res.json()
 }
 
+async function fetchOrThrow<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options)
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    onUnauthorized?.()
+    throw new Error('Session expired')
+  }
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`API error ${res.status}: ${body}`)
+  }
+  return res.json()
+}
+
 export async function fetchInbox(
   page: number,
   status: string,
   search: string,
   token: string
 ): Promise<{ items: FeedbackItem[]; total: number; page: number }> {
-  const res = await fetch(`${API_URL}/feedback?page=${page}&status=${status}&q=${search}`, {
+  return fetchOrThrow(`${API_URL}/feedback?page=${page}&status=${status}&q=${search}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function fetchItem(id: number, token: string): Promise<FeedbackItem> {
-  const res = await fetch(`${API_URL}/feedback/${id}`, {
+  return fetchOrThrow(`${API_URL}/feedback/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function toggleResolve(id: number, token: string): Promise<FeedbackItem> {
-  const res = await fetch(`${API_URL}/feedback/${id}/resolve`, {
+  return fetchOrThrow(`${API_URL}/feedback/${id}/resolve`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function fetchUsers(token: string): Promise<{ users: User[] }> {
-  const res = await fetch(`${API_URL}/users`, {
+  return fetchOrThrow(`${API_URL}/users`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function fetchMetrics(token: string): Promise<Metrics> {
-  const res = await fetch(`${API_URL}/metrics`, {
+  return fetchOrThrow(`${API_URL}/metrics`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
-export function exportFeedbackUrl(status: string, search: string, token: string) {
-  return `${API_URL}/export.csv?status=${status}&q=${search}&token=${token}`
+export async function downloadCsv(status: string, search: string, token: string) {
+  const qs = new URLSearchParams({ status, q: search })
+  const res = await fetch(`${API_URL}/export.csv?${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Export failed')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'pulse-feedback-export.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export async function fetchCustomer(id: number, token: string): Promise<CustomerProfile> {
-  const res = await fetch(`${API_URL}/customers/${id}`, {
+  return fetchOrThrow(`${API_URL}/customers/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function updateAssignment(
@@ -73,7 +99,7 @@ export async function updateAssignment(
   data: { assignee_id: number | null; priority: string; due_at: string },
   token: string
 ): Promise<FeedbackItem> {
-  const res = await fetch(`${API_URL}/feedback/${id}/assignment`, {
+  return fetchOrThrow(`${API_URL}/feedback/${id}/assignment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,14 +107,12 @@ export async function updateAssignment(
     },
     body: JSON.stringify(data),
   })
-  return res.json()
 }
 
 export async function fetchNotes(id: number, token: string): Promise<{ notes: InternalNote[] }> {
-  const res = await fetch(`${API_URL}/feedback/${id}/notes`, {
+  return fetchOrThrow(`${API_URL}/feedback/${id}/notes`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  return res.json()
 }
 
 export async function addNote(
@@ -96,7 +120,7 @@ export async function addNote(
   data: { body: string; is_private: boolean },
   token: string
 ): Promise<InternalNote> {
-  const res = await fetch(`${API_URL}/feedback/${id}/notes`, {
+  return fetchOrThrow(`${API_URL}/feedback/${id}/notes`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -104,18 +128,15 @@ export async function addNote(
     },
     body: JSON.stringify(data),
   })
-  return res.json()
 }
 
 export async function summarize(id: number, token: string): Promise<{ summary: string }> {
-  const res = await fetch(`${API_URL}/summarize`, {
+  return fetchOrThrow(`${API_URL}/summarize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      'x-llm-key': LLM_API_KEY,
     },
     body: JSON.stringify({ id }),
   })
-  return res.json()
 }

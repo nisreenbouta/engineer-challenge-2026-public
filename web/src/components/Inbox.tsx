@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { exportFeedbackUrl, fetchInbox, fetchMetrics, toggleResolve } from '../api'
+import { downloadCsv, fetchInbox, fetchMetrics, toggleResolve } from '../api'
 import { FeedbackItem, Metrics } from '../types'
 import ItemDetail from './ItemDetail'
 
@@ -13,11 +13,21 @@ export default function Inbox({ token }: { token: string }) {
   const [search, setSearch] = useState('')
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const load = async () => {
-    const data = await fetchInbox(page, filter, search, token)
-    setItems(data.items)
-    setTotal(data.total)
+    setLoading(true)
+    setError('')
+    try {
+      const data = await fetchInbox(page, filter, search, token)
+      setItems(data.items)
+      setTotal(data.total)
+    } catch (err) {
+      setError('Failed to load feedback')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -25,25 +35,38 @@ export default function Inbox({ token }: { token: string }) {
   }, [page, filter, search])
 
   useEffect(() => {
-    fetchMetrics(token).then(setMetrics)
+    fetchMetrics(token).then(setMetrics).catch(() => {})
   }, [token])
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const data = await fetchInbox(page, filter, search, token)
-      const merged = data.items.map((incoming) => {
-        const local = items.find((it) => it.id === incoming.id)
-        return local ? { ...incoming, status: local.status } : incoming
-      })
-      setItems(merged)
+      try {
+        const data = await fetchInbox(page, filter, search, token)
+        setItems((prev) => {
+          const merged = data.items.map((incoming) => {
+            const local = prev.find((it) => it.id === incoming.id)
+            return local ? { ...incoming, status: local.status } : incoming
+          })
+          return merged
+        })
+      } catch {
+        // silent retry on next poll
+      }
     }, 45000)
     return () => clearInterval(interval)
-  }, [])
+  }, [page, filter, search, token])
 
   const onResolve = async (item: FeedbackItem) => {
-    const nextStatus = item.status === 'open' ? 'resolved' : 'open'
+    const nextLabel = item.status === 'open' ? 'resolved' : 'reopened'
+    if (!window.confirm(`Mark this item as ${nextLabel}?`)) return
+    const prevStatus = item.status
+    const nextStatus = prevStatus === 'open' ? 'resolved' : 'open'
     setItems(items.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it)))
-    await toggleResolve(item.id, token)
+    try {
+      await toggleResolve(item.id, token)
+    } catch {
+      setItems(items.map((it) => (it.id === item.id ? { ...it, status: prevStatus } : it)))
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -110,13 +133,15 @@ export default function Inbox({ token }: { token: string }) {
         <button
           className="export-button"
           onClick={() => {
-            window.location.href = exportFeedbackUrl(filter, search, token)
+            downloadCsv(filter, search, token).catch(console.error)
           }}
         >
           Export CSV
         </button>
       </div>
 
+      {loading && <p className="muted" style={{textAlign:'center', padding:'20px'}}>Loading…</p>}
+      {error && <div className="error">{error}</div>}
       <table className="feedback-table">
         <thead>
           <tr>
