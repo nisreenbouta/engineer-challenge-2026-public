@@ -59,6 +59,7 @@ app.get('/feedback', authenticate, (req: Request, res: Response) => {
   try {
     const status = (req.query.status as string) || 'all'
     const search = ((req.query.q as string) || '').trim()
+    const priority = (req.query.priority as string) || 'all'
     const page = Math.max(1, parseInt((req.query.page as string) || '1', 10))
     const offset = (page - 1) * PAGE_SIZE
 
@@ -68,6 +69,10 @@ app.get('/feedback', authenticate, (req: Request, res: Response) => {
     if (status !== 'all') {
       conditions.push('status = ?')
       params.push(status)
+    }
+    if (priority !== 'all') {
+      conditions.push('priority = ?')
+      params.push(priority)
     }
     if (search) {
       conditions.push(

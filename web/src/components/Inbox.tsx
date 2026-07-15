@@ -11,6 +11,7 @@ export default function Inbox({ token }: { token: string }) {
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('all')
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -21,7 +22,7 @@ export default function Inbox({ token }: { token: string }) {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchInbox(page, filter, search, token)
+        const data = await fetchInbox(page, filter, priorityFilter, search, token)
       setItems(data.items)
       setTotal(data.total)
     } catch (err) {
@@ -34,7 +35,7 @@ export default function Inbox({ token }: { token: string }) {
   useEffect(() => {
     load()
     tableRef.current?.scrollTo(0, 0)
-  }, [page, filter, search])
+  }, [page, filter, priorityFilter, search])
 
   useEffect(() => {
     fetchMetrics(token).then(setMetrics).catch(() => {})
@@ -43,7 +44,7 @@ export default function Inbox({ token }: { token: string }) {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const data = await fetchInbox(page, filter, search, token)
+      const data = await fetchInbox(page, filter, priorityFilter, search, token)
         setItems((prev) => {
           const merged = data.items.map((incoming) => {
             const local = prev.find((it) => it.id === incoming.id)
@@ -56,7 +57,7 @@ export default function Inbox({ token }: { token: string }) {
       }
     }, 45000)
     return () => clearInterval(interval)
-  }, [page, filter, search, token])
+  }, [page, filter, priorityFilter, search, token])
 
   const onResolve = async (item: FeedbackItem) => {
     const nextLabel = item.status === 'open' ? 'resolved' : 'reopened'
@@ -123,6 +124,20 @@ export default function Inbox({ token }: { token: string }) {
             </button>
           ))}
         </div>
+        <select
+          className="priority-select"
+          value={priorityFilter}
+          onChange={(e) => {
+            setPriorityFilter(e.target.value)
+            setPage(1)
+          }}
+        >
+          <option value="all">All priorities</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="normal">Normal</option>
+          <option value="low">Low</option>
+        </select>
         <input
           className="search"
           value={search}

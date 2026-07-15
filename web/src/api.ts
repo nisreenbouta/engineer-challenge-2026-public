@@ -40,10 +40,13 @@ async function fetchOrThrow<T>(url: string, options?: RequestInit): Promise<T> {
 export async function fetchInbox(
   page: number,
   status: string,
+  priority: string,
   search: string,
   token: string
 ): Promise<{ items: FeedbackItem[]; total: number; page: number }> {
-  return fetchOrThrow(`${API_URL}/feedback?page=${page}&status=${status}&q=${search}`, {
+  const qs = new URLSearchParams({ page: String(page), status, q: search })
+  if (priority !== 'all') qs.set('priority', priority)
+  return fetchOrThrow(`${API_URL}/feedback?${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
 }
