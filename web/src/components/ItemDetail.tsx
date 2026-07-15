@@ -63,6 +63,8 @@ export default function ItemDetail({
 
   const onResolve = async () => {
     if (!item) return
+    const nextLabel = item.status === 'open' ? 'resolved' : 'reopened'
+    if (!window.confirm(`Mark this item as ${nextLabel}?`)) return
     const updated = await toggleResolve(item.id, token)
     setItem({ ...item, status: updated.status })
   }
@@ -76,6 +78,7 @@ export default function ItemDetail({
 
   const onSaveAssignment = async () => {
     if (!item) return
+    if (!window.confirm('Save routing changes?')) return
     const updated = await updateAssignment(
       item.id,
       {
@@ -124,7 +127,7 @@ export default function ItemDetail({
             <span className={'priority ' + item.priority}>{item.priority}</span>
             <span className="muted">{new Date(item.created_at).toLocaleString()}</span>
           </div>
-          <div className="message" dangerouslySetInnerHTML={{ __html: item.message }} />
+          <div className="message">{item.message}</div>
           <div className="assignment-panel">
             <label>
               Owner
@@ -164,7 +167,7 @@ export default function ItemDetail({
           {summary && (
             <div className="summary">
               <h3>Summary</h3>
-              <div dangerouslySetInnerHTML={{ __html: summary }} />
+              <div>{summary}</div>
             </div>
           )}
         </div>
@@ -216,7 +219,7 @@ export default function ItemDetail({
                     <strong>{note.author_name}</strong>
                     <span>{note.is_private ? 'Private' : 'Shared'}</span>
                   </div>
-                  <div dangerouslySetInnerHTML={{ __html: note.body }} />
+                  <div>{note.body}</div>
                 </article>
               ))}
             </div>
