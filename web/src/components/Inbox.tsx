@@ -59,16 +59,20 @@ export default function Inbox({ token }: { token: string }) {
     return () => clearInterval(interval)
   }, [page, filter, priorityFilter, search, token])
 
+  const filterItems = (list: FeedbackItem[]) =>
+    filter === 'all' ? list : list.filter((it) => it.status === filter)
+
   const onResolve = async (item: FeedbackItem) => {
     const nextLabel = item.status === 'open' ? 'resolved' : 'reopened'
     if (!window.confirm(`Mark this item as ${nextLabel}?`)) return
     const prevStatus = item.status
     const nextStatus = prevStatus === 'open' ? 'resolved' : 'open'
-    setItems(items.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it)))
+    setItems(filterItems(items.map((it) => (it.id === item.id ? { ...it, status: nextStatus } : it))))
     try {
       await toggleResolve(item.id, token)
+      load()
     } catch {
-      setItems(items.map((it) => (it.id === item.id ? { ...it, status: prevStatus } : it)))
+      setItems(filterItems(items.map((it) => (it.id === item.id ? { ...it, status: prevStatus } : it))))
     }
   }
 
