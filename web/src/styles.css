@@ -266,14 +266,19 @@ input, select, textarea {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  overflow: hidden;
-  min-height: 420px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
 }
 
 .feedback-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+}
+
+.feedback-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .feedback-table thead th {
@@ -387,6 +392,9 @@ input, select, textarea {
   padding: 14px;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
 }
 
 .pager button {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { downloadCsv, fetchInbox, fetchMetrics, toggleResolve } from '../api'
 import { FeedbackItem, Metrics } from '../types'
 import ItemDetail from './ItemDetail'
@@ -15,6 +15,7 @@ export default function Inbox({ token }: { token: string }) {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const tableRef = useRef<HTMLDivElement>(null)
 
   const load = async () => {
     setLoading(true)
@@ -32,6 +33,7 @@ export default function Inbox({ token }: { token: string }) {
 
   useEffect(() => {
     load()
+    tableRef.current?.scrollTo(0, 0)
   }, [page, filter, search])
 
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function Inbox({ token }: { token: string }) {
         </button>
       </div>
 
-      <div className="table-wrapper">
+      <div className="table-wrapper" ref={tableRef}>
         {loading && <p className="muted" style={{textAlign:'center', padding:'40px 20px'}}>Loading…</p>}
         {error && <div className="error" style={{margin: '12px'}}>{error}</div>}
         {!loading && !error && (
@@ -192,18 +194,17 @@ export default function Inbox({ token }: { token: string }) {
             </tbody>
           </table>
         )}
-      </div>
-
-      <div className="pager">
-        <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
-          Previous
-        </button>
-        <span>
-          Page {page} of {totalPages}
-        </span>
-        <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-          Next
-        </button>
+        <div className="pager">
+          <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            Previous
+          </button>
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            Next
+          </button>
+        </div>
       </div>
     </div>
   )
