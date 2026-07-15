@@ -201,7 +201,7 @@ export default function ItemDetail({
             <textarea
               value={noteBody}
               onChange={(e) => setNoteBody(e.target.value)}
-              placeholder="Paste context, snippets, reminders..."
+               placeholder="Add a note..."
             />
             <label className="checkbox-row">
               <input

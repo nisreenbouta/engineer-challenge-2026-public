@@ -128,7 +128,7 @@ export default function Inbox({ token }: { token: string }) {
             setSearch(e.target.value)
             setPage(1)
           }}
-          placeholder="Search VIPs, refunds, chaos..."
+          placeholder="Search feedback..."
         />
         <button
           className="export-button"
@@ -140,55 +140,59 @@ export default function Inbox({ token }: { token: string }) {
         </button>
       </div>
 
-      {loading && <p className="muted" style={{textAlign:'center', padding:'20px'}}>Loading…</p>}
-      {error && <div className="error">{error}</div>}
-      <table className="feedback-table">
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Channel</th>
-            <th>Priority</th>
-            <th>Message</th>
-            <th>Owner</th>
-            <th>Status</th>
-            <th>Due</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="row" onClick={() => setSelectedId(item.id)}>
-              <td>{item.customer_name}</td>
-              <td>
-                <span className="channel">{item.channel}</span>
-              </td>
-              <td>
-                <span className={'priority ' + item.priority}>{item.priority}</span>
-              </td>
-              <td className="preview">
-                {item.message.slice(0, 70)}
-                {item.message.length > 70 ? '…' : ''}
-              </td>
-              <td>{item.assignee_name || 'Nobody'}</td>
-              <td>
-                <span className={'badge ' + item.status}>{item.status}</span>
-              </td>
-              <td>{item.due_at ? new Date(item.due_at).toLocaleDateString() : 'Someday'}</td>
-              <td>
-                <button
-                  className="link-button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onResolve(item)
-                  }}
-                >
-                  {item.status === 'open' ? 'Resolve' : 'Reopen'}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="table-wrapper">
+        {loading && <p className="muted" style={{textAlign:'center', padding:'40px 20px'}}>Loading…</p>}
+        {error && <div className="error" style={{margin: '12px'}}>{error}</div>}
+        {!loading && !error && (
+          <table className="feedback-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Channel</th>
+                <th>Priority</th>
+                <th>Message</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Due</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="row" onClick={() => setSelectedId(item.id)}>
+                  <td>{item.customer_name}</td>
+                  <td>
+                    <span className="channel">{item.channel}</span>
+                  </td>
+                  <td>
+                    <span className={'priority ' + item.priority}>{item.priority}</span>
+                  </td>
+                  <td className="preview">
+                    {item.message.slice(0, 70)}
+                    {item.message.length > 70 ? '…' : ''}
+                  </td>
+                  <td>{item.assignee_name || 'Nobody'}</td>
+                  <td>
+                    <span className={'badge ' + item.status}>{item.status}</span>
+                  </td>
+                  <td>{item.due_at ? new Date(item.due_at).toLocaleDateString() : '—'}</td>
+                  <td>
+                    <button
+                      className="link-button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onResolve(item)
+                      }}
+                    >
+                      {item.status === 'open' ? 'Resolve' : 'Reopen'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <div className="pager">
         <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
